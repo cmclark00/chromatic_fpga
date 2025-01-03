@@ -590,8 +590,10 @@ module top #(parameter ISSIMU=0)
     wire        uart_rx_val;
 
     wire menu_gated = qMenuInit&(CART_DET_sr[6:3]==4'b1111) ? BTN_MENU : 1'b1;
+    
+     wire ff_on;  // Add signal for fast-forward active indicator
 
-    system_monitor u_system_monitor(
+     system_monitor u_system_monitor(
         .clk(gClk),
         .reset(~lock_o),
         .BTN_A(BTN_A),
@@ -657,5 +659,24 @@ module top #(parameter ISSIMU=0)
     );
 
     assign I2S_BCLK = menuDisabled;
+
+      // Instantiate speedcontrol
+    speedcontrol u_speedcontrol (
+        .clk_sys(gClk),
+        .pause(memrst),
+        .speedup(1'b0),
+        .cart_act(1'b0),
+        .DMA_on(1'b0),
+        .button_a(BTN_A),
+        .button_b(BTN_B),
+        .button_start(BTN_START),
+        .ce(),
+        .ce_2x(),
+        .refresh(),
+        .ff_on(ff_on)  // Fast-forward active signal
+    );
+
+    // Debug output to LEDs
+    assign FPGA_LED_G = ~ff_on;
 
 endmodule
