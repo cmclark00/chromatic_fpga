@@ -591,9 +591,9 @@ module top #(parameter ISSIMU=0)
 
     wire menu_gated = qMenuInit&(CART_DET_sr[6:3]==4'b1111) ? BTN_MENU : 1'b1;
     
-     wire ff_on;  // Add signal for fast-forward active indicator
+    wire ff_on;  // Add signal for fast-forward active indicator
 
-     system_monitor u_system_monitor(
+    system_monitor u_system_monitor(
         .clk(gClk),
         .reset(~lock_o),
         .BTN_A(BTN_A),
