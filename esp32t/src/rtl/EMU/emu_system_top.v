@@ -59,6 +59,7 @@ module emu_system_top
     reg [SRSIZE-1:0] BTN_SEL_sr;
     reg [SRSIZE-1:0] BTN_B_sr;
     reg [SRSIZE-1:0] BTN_A_sr;
+    reg [SRSIZE-1:0] BTN_MENU_sr;
 
     reg BTN_DPAD_DOWN_filtered;
     reg BTN_DPAD_UP_filtered;
@@ -68,6 +69,7 @@ module emu_system_top
     reg BTN_SEL_filtered;
     reg BTN_B_filtered;
     reg BTN_A_filtered;
+    reg BTN_MENU_filtered;
     
     reg BTN_DPAD_DOWN_filtered_dir;
     reg BTN_DPAD_UP_filtered_dir;
@@ -85,6 +87,8 @@ module emu_system_top
         BTN_A_sr <= {BTN_A_sr [SRSIZE-2:0], BTN_A&~BTN_MENU&MENU_CLOSED};
         BTN_B_sr <= {BTN_B_sr [SRSIZE-2:0], BTN_B&~BTN_MENU&MENU_CLOSED};
 
+        BTN_MENU_sr <= {BTN_MENU_sr[SRSIZE-2:0], BTN_MENU & MENU_CLOSED};
+
         BTN_DPAD_DOWN_filtered <= &BTN_DPAD_DOWN_sr[SRSIZE-1:1];
         BTN_DPAD_UP_filtered <= &BTN_DPAD_UP_sr[SRSIZE-1:1];
         BTN_DPAD_LEFT_filtered <= &BTN_DPAD_LEFT_sr[SRSIZE-1:1];
@@ -93,6 +97,8 @@ module emu_system_top
         BTN_SEL_filtered <= &BTN_SEL_sr[SRSIZE-1:1];
         BTN_A_filtered <= &BTN_A_sr[SRSIZE-1:1];
         BTN_B_filtered <= &BTN_B_sr[SRSIZE-1:1];
+
+        BTN_MENU_filtered      <= &BTN_MENU_sr     [SRSIZE-1:1];
         
         BTN_DPAD_DOWN_filtered_dir  <= BTN_DPAD_DOWN_filtered  & ~BTN_DPAD_UP_filtered;
         BTN_DPAD_UP_filtered_dir    <= BTN_DPAD_UP_filtered    & ~BTN_DPAD_DOWN_filtered;
@@ -112,7 +118,8 @@ module emu_system_top
         BTN_START_filtered,
         BTN_SEL_filtered,
         BTN_B_filtered,
-        BTN_A_filtered
+        BTN_A_filtered,
+        BTN_MENU_filtered
     };
 
     reg [3:0] joy_din;
@@ -144,18 +151,27 @@ module emu_system_top
     wire [2:0] TSTATEo;
     wire sleep_savestate;
 
+    // after your filtering registers
+    wire btn_menu_filtered = BTN_MENU;  // or see below for your filtered version
+    wire btn_sel_filtered  = BTN_SEL;   // likewise
+
+    // e.g. require both buttons pressed & the menu to be closed
+    wire speedup_signal = (btn_menu_filtered & btn_sel_filtered & MENU_CLOSED);
+
+    // Now hook this up to speedcontrol
     speedcontrol u_speedcontrol
     (
         .clk_sys     (hclk),
         .pause       (sleep_savestate),
-        .speedup     (),
+        .speedup     (speedup_signal),  // <--- now driven
         .cart_act    (rd | wr),
-        .DMA_on      (),
+        .DMA_on      (DMA_on),          // you can also connect DMA_on if you want
         .ce          (ce),
         .ce_2x       (ce_2x),
         .refresh     (),
         .ff_on       ()
     );
+
 
     wire sel_cram = a[15:13] == 3'b101;           // 8k cart ram at $a000
     wire cart_oe = (rd & ~a[15]) | (sel_cram & rd);
